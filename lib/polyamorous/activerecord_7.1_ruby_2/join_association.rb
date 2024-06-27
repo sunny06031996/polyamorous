@@ -32,7 +32,11 @@ if defined?(::ActiveRecord)
   end
 
   %w(join_association join_dependency).each do |file|
-    require "polyamorous/activerecord_#{ar_version}_ruby_#{ruby_version}/#{file}"
+    begin
+      require "polyamorous/activerecord_#{ar_version}_ruby_#{ruby_version}/#{file}"
+    rescue LoadError
+      raise "Cannot load polyamorous/activerecord_#{ar_version}_ruby_#{ruby_version}/#{file}. Please ensure polyamorous gem version supports ActiveRecord #{ar_version} and Ruby #{ruby_version}."
+    end
   end
 
   if defined?(Polyamorous::JoinDependencyExtensions)

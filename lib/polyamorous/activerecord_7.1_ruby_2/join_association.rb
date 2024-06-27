@@ -1,13 +1,9 @@
+# Example modification in polyamorous gem
 require 'polyamorous/version'
-
-if ActiveRecord::VERSION::MAJOR >= 7
-  require "polyamorous/activerecord_7.1_ruby_3/reflection"
-else
-  require "polyamorous/activerecord_6.x_ruby_2/reflection"
-end
 
 if defined?(::ActiveRecord)
   module Polyamorous
+    # Ensure correct definitions based on ActiveRecord version
     if defined?(Arel::InnerJoin)
       InnerJoin = Arel::InnerJoin
       OuterJoin = Arel::OuterJoin
@@ -16,6 +12,7 @@ if defined?(::ActiveRecord)
       OuterJoin = Arel::Nodes::OuterJoin
     end
 
+    # Adjust ActiveRecord class definitions as needed
     if defined?(::ActiveRecord::Associations::JoinDependency)
       JoinDependency  = ::ActiveRecord::Associations::JoinDependency
       JoinAssociation = ::ActiveRecord::Associations::JoinDependency::JoinAssociation
@@ -27,19 +24,14 @@ if defined?(::ActiveRecord)
     end
   end
 
-  require 'polyamorous/tree_node'
-  require 'polyamorous/join'
-  require 'polyamorous/swapping_reflection_class'
-
+  # Ensure proper loading of polyamorous files based on ActiveRecord and Ruby versions
   ar_version = ::ActiveRecord::VERSION::STRING[0,3]
   ar_version = '3_and_4.0' if ar_version < '4.1'
 
   method, ruby_version =
     if RUBY_VERSION >= '2.0' && ar_version >= '4.1'
-      # Ruby 2; we can use `prepend` to patch Active Record cleanly.
       [:prepend, '2']
     else
-      # Ruby 1.9; we must use `alias_method` to patch Active Record.
       [:include, '1.9']
     end
 
@@ -47,17 +39,15 @@ if defined?(::ActiveRecord)
     require "polyamorous/activerecord_#{ar_version}_ruby_#{ruby_version}/#{file}"
   end
 
+  # Apply modifications to ActiveRecord classes
   Polyamorous::JoinDependency.send(method, Polyamorous::JoinDependencyExtensions)
   if method == :prepend
     Polyamorous::JoinDependency.singleton_class
-    .send(:prepend, Polyamorous::JoinDependencyExtensions::ClassMethods)
+      .send(:prepend, Polyamorous::JoinDependencyExtensions::ClassMethods)
   end
   Polyamorous::JoinAssociation.send(method, Polyamorous::JoinAssociationExtensions)
 
   Polyamorous::JoinBase.class_eval do
-    if method_defined?(:active_record)
-      alias_method :base_klass, :active_record
-    end
+    alias_method :base_klass, :active_record if method_defined?(:active_record)
   end
 end
-
